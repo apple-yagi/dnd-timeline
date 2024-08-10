@@ -1,5 +1,10 @@
 import { endOfDay, startOfDay } from "date-fns";
-import type { DragEndEvent, Range, ResizeEndEvent } from "dnd-timeline";
+import type {
+	DragEndEvent,
+	OnRangeChanged,
+	Range,
+	ResizeEndEvent,
+} from "dnd-timeline";
 import { TimelineContext } from "dnd-timeline";
 import { useSetAtom } from "jotai";
 import type { PropsWithChildren } from "react";
@@ -10,9 +15,24 @@ const DEFAULT_RANGE: Range = {
 	start: startOfDay(new Date()).getTime(),
 	end: endOfDay(new Date()).getTime(),
 };
+const MIN_RANGE = startOfDay(new Date()).getTime();
+const MAX_RANGE = endOfDay(new Date()).getTime();
 
 function TimelineWrapper(props: PropsWithChildren) {
 	const [range, setRange] = useState(DEFAULT_RANGE);
+	const onRangeChanged: OnRangeChanged = useCallback(
+		(updateFunction) => {
+			const newRange = updateFunction(range);
+			if (newRange.start < MIN_RANGE) {
+				newRange.start = MIN_RANGE;
+			}
+			if (newRange.end > MAX_RANGE) {
+				newRange.end = MAX_RANGE;
+			}
+			setRange(newRange);
+		},
+		[range],
+	);
 
 	const setItems = useSetAtom(itemsAtom);
 
@@ -68,7 +88,7 @@ function TimelineWrapper(props: PropsWithChildren) {
 		<TimelineContext
 			onDragEnd={onDragEnd}
 			onResizeEnd={onResizeEnd}
-			onRangeChanged={setRange}
+			onRangeChanged={onRangeChanged}
 			range={range}
 		>
 			{props.children}
